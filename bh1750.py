@@ -45,10 +45,10 @@ class BH1750():
 
         data_mode = bytearray(1)
         lux = bytearray(2)
-        delay = 0
+        delay = 0 
 
         if mode in (ONE_HIGH, ONE_HIGH_2):
-            delay = 0.120
+            delay = 0.12
         if mode == ONE_LOW:
             delay = 0.016
 
@@ -56,13 +56,7 @@ class BH1750():
         self.i2c.writeto(self.address, data_mode)
         time.sleep(delay)
 
-        try:
-            self.i2c.readfrom(self.address, lux[0])
-        except TypeError:
-            print(self.address)
-            print(lux)
+        self.i2c.readfrom_into(self.address, lux)
 
         lux = lux[0] * 256 + lux[1]
-        lux = float(lux) / 1.2
-
-        return lux
+        return round(lux / 1.2, 1)
