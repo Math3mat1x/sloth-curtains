@@ -1,11 +1,3 @@
-#
-# Librairie permettant de gerer le capteur de luminosite
-# BH1750
-# Tester sur Wemos D1 mini
-#
-# Auteur : iTechnoFrance
-#
-
 from machine import I2C, Pin
 import time
 
@@ -55,37 +47,27 @@ class BH1750():
         self.i2c.writeto(self.adresse, self.data)  
         time.sleep(0.01)  # delai de 10ms
     
-    def lecture_lumiere(self, mode_mesure): 
-        self.BH1750_MODE = mode_mesure
-        self.mode_mesure_ok = False
-        self.luminosite = 0
-        self.data_mode = bytearray(1)
-        self.lux = bytearray(2)
-        self.delai = 0
-        # configuration du mode de mesure
-        if (self.BH1750_MODE == MODE_CONTINU_HAUTE_RESOLUTION):
-            self.mode_mesure_ok = True
-        if (self.BH1750_MODE == MODE_2_CONTINU_HAUTE_RESOLUTION):
-            self.mode_mesure_ok = True
-        if (self.BH1750_MODE == MODE_CONTINU_BASSE_RESOLUTION):
-            self.mode_mesure_ok = True
-        if (self.BH1750_MODE == MODE_UNE_MESURE_HAUTE_RESOLUTION):
-            self.mode_mesure_ok = True
-            self.delai = 0.120
-        if (self.BH1750_MODE == MODE_2_UNE_MESURE_HAUTE_RESOLUTION):
-            self.mode_mesure_ok = True
-            self.delai = 0.120
-        if (self.BH1750_MODE == MODE_UNE_MESURE_BASSE_RESOLUTION):
-            self.mode_mesure_ok = True
-            self.delai = 0.016
-        if (self.mode_mesure_ok):
-            self.data_mode[0] = self.BH1750_MODE
-            self.i2c.writeto(self.adresse, self.data_mode)
-            time.sleep(self.delai)
-            self.i2c.readfrom_into(self.adresse, self.lux)
-            self.lux = self.lux[0] * 256 + self.lux[1]
-            self.lux = int(float(self.lux) / 1.2)  # Voir la documentation du capteur
-            return(self.lux)
-        else:
-            print("Erreur : mode invalide")
-        
+    def measure(self, mode=False):
+        if not mode:
+            if self.address == 0x5C:
+                mode = LOW_RESOLUTION
+            else:
+                mode = HIGH_RESOLUTION
+
+        data_mode = bytearray(1)
+        lux = bytearray(2)
+        delay = 0 
+
+        if mode in (ONE_HIGH, ONE_HIGH_2):
+            delay = 0.12
+        if mode == ONE_LOW:
+            delay = 0.016
+
+        data_mode[0] = mode
+        self.i2c.writeto(self.address, data_mode)
+        time.sleep(delay)
+
+        self.i2c.readfrom_into(self.address, lux)
+
+        lux = lux[0] * 256 + lux[1]
+        return round(lux / 1.2, 1)
