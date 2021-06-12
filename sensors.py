@@ -1,20 +1,13 @@
 # BH1750 Documentation: https://www.mouser.com/datasheet/2/348/bh1750fvi-e-186247.pdf
+# SG90 Documentation : http://www.ee.ic.ac.uk/pcheung/teaching/DE1_EE/stores/sg90_datasheet.pdf
 
-from machine import I2C, Pin
+from machine import I2C, Pin, PWM
 import time
 
-HIGH_RESOLUTION = 0x11 # 0.5 Lux precision, measure time: 120 ms
-HIGH_RESOLUTION_2 = 0x10 # 1 Lux precision, measure time: 120 ms
-LOW_RESOLUTION = 0x13 # # 4 Lux précision, measure time: 16s
-
-ONE_HIGH = 0x21 # 1 measure then idle
-ONE_HIGH_2 = 0x20
-ONE_LOW = 0x23
-
-class BH1750():
+class BH1750(): # light intensity sensor
        
-    def __init__(self, i2c):
-        self.i2c = i2c
+    def __init__(self, id=0, scl=17, sda=16):
+        self.i2c = I2C(id, scl=Pin(scl), sda=Pin(sda))
         if self.detect():
             self.reset()
         
@@ -37,6 +30,13 @@ class BH1750():
         time.sleep(0.01)
     
     def measure(self, mode=False):
+        HIGH_RESOLUTION = 0x11 # 0.5 Lux precision, measure time: 120 ms
+        HIGH_RESOLUTION_2 = 0x10 # 1 Lux precision, measure time: 120 ms
+        LOW_RESOLUTION = 0x13 # # 4 Lux précision, measure time: 16s
+        
+        ONE_HIGH = 0x21 # 1 measure then idle
+        ONE_HIGH_2 = 0x20
+        ONE_LOW = 0x23
         if not mode:
             if self.address == 0x5C:
                 mode = LOW_RESOLUTION
@@ -60,3 +60,22 @@ class BH1750():
 
         lux = lux[0] * 256 + lux[1]
         return round(lux / 1.2, 1)
+
+class SG90(): # servomotor
+    def __init__(self, pin=0):
+        self.servo = PWM(Pin(pin))
+        self.servo.freq(50)
+        duty = self.servo.duty_u16()
+        self.position = round((duty-3276) * 90 / 3277)
+
+    def move(self, angle=0):
+        try:
+            if angle < 0 or angle > 90:
+                raise ValueError
+        except ValueError:
+            return "Wrong angle."
+
+        self.position = angle
+
+        duty = 3276 + angle * 3277 / 90 # 3277 = 6553 - 3276
+        self.servo.duty_u16(round(duty))
